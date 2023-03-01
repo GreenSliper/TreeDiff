@@ -113,11 +113,16 @@ namespace TreeDiff
 
 			foreach (var fa in fieldsAttributes)
 			{
-				object? firstValue = fa.field.GetValue(source),
+				object firstValue = fa.field.GetValue(source),
 						secondValue = fa.field.GetValue(changed);
 				if (fa.attr.recusive)
 				{
 					if (!CompletelyIdentical(firstValue, secondValue))
+						return false;
+				}
+				else if (firstValue == null || secondValue == null)
+				{
+					if (firstValue != secondValue)
 						return false;
 				}
 				else if (!firstValue.Equals(secondValue))
