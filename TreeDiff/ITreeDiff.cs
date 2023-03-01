@@ -6,12 +6,12 @@ using System.Threading.Tasks;
 
 namespace TreeDiff
 {
-	public interface IDiffTree
+	public interface ITreeDiff
 	{
-		IEnumerable<IDiffTree> GetChildren();
+		IEnumerable<ITreeDiff> GetChildren();
 		/// <summary>
 		/// Identical by ID or other key. Need to check types!
 		/// </summary>
-		bool PrimarilyIdentical(IDiffTree other);
+		bool PrimarilyIdentical(ITreeDiff other);
 	}
 }

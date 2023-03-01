@@ -1,11 +1,13 @@
-﻿namespace TreeDiff
+﻿using System.Reflection;
+
+namespace TreeDiff
 {
 	public class TreeDiffResult
 	{
 		public enum State { Unchanged, Changed, Added, Removed}
 
 		public State state;
-		public IDiffTree element;
+		public ITreeDiff element;
 		public List<TreeDiffResult> children = new List<TreeDiffResult>();
 
 		public bool DescendantsAltered { 
@@ -17,28 +19,36 @@
 			}
 		}
 
-		public TreeDiffResult(IDiffTree element, State state)
+		public TreeDiffResult(ITreeDiff element, State state)
 		{
 			this.element = element;
 			this.state = state;
 		}
 	}
 
-	public class TreeDiff
+	public interface ITreeDiffResolver
 	{
-		public TreeDiffResult Diff(IDiffTree source, IDiffTree changed)
+		TreeDiffResult Diff(ITreeDiff source, ITreeDiff changed);
+	}
+
+	public class TreeDiffResolver
+	{
+		public TreeDiffResult Diff(ITreeDiff source, ITreeDiff changed)
 		{
 			if (!source.PrimarilyIdentical(changed))
 				throw new ArgumentException("Cannot diff trees with non-identical roots!");
-			TreeDiffResult result = new TreeDiffResult(source, 
-				CompletelyIdentical(source, changed) ? TreeDiffResult.State.Unchanged : TreeDiffResult.State.Changed);
+			TreeDiffResult result = null;
+			if (CompletelyIdentical(source, changed))
+				result = new TreeDiffResult(source, TreeDiffResult.State.Unchanged);
+			else
+				result = new TreeDiffResult(changed, TreeDiffResult.State.Changed);
 			Diff(source, changed, result);
 			return result;
 		}
 
-		void Diff(IDiffTree source, IDiffTree changed, TreeDiffResult result)
+		void Diff(ITreeDiff source, ITreeDiff changed, TreeDiffResult result)
 		{
-			var changedChildren = new List<IDiffTree>(changed.GetChildren());
+			var changedChildren = new List<ITreeDiff>(changed.GetChildren());
 			var srcChildren = source.GetChildren();
 
 			foreach (var srcChild in srcChildren)
@@ -47,9 +57,11 @@
 				var changedChildIndex = changedChildren.FindIndex(x => x.PrimarilyIdentical(srcChild));
 				if (changedChildIndex > -1)
 				{
-					bool identical = CompletelyIdentical(srcChild, changedChildren[changedChildIndex]);
-					TreeDiffResult diffResult = new TreeDiffResult(srcChild,
-						identical ? TreeDiffResult.State.Unchanged : TreeDiffResult.State.Changed);
+					TreeDiffResult diffResult = null;
+					if (CompletelyIdentical(srcChild, changedChildren[changedChildIndex]))
+						diffResult = new TreeDiffResult(srcChild, TreeDiffResult.State.Unchanged);
+					else
+						diffResult = new TreeDiffResult(changedChildren[changedChildIndex], TreeDiffResult.State.Changed);
 					result.children.Add(diffResult);
 					Diff(srcChild, changedChildren[changedChildIndex], diffResult);
 					changedChildren.RemoveAt(changedChildIndex);
@@ -61,7 +73,7 @@
 			AddRecursive(changedChildren, result);
 		}
 
-		void RemoveRecursive(IDiffTree element, TreeDiffResult result)
+		void RemoveRecursive(ITreeDiff element, TreeDiffResult result)
 		{
 			var tdr = new TreeDiffResult(element, TreeDiffResult.State.Removed);
 			result.children.Add(tdr);
@@ -69,7 +81,7 @@
 				RemoveRecursive(child, tdr);
 		}
 
-		void AddRecursive(IEnumerable<IDiffTree> elements, TreeDiffResult result)
+		void AddRecursive(IEnumerable<ITreeDiff> elements, TreeDiffResult result)
 		{
 			foreach (var elem in elements)
 			{
@@ -79,10 +91,15 @@
 			}
 		}
 
-		bool CompletelyIdentical(IDiffTree source, IDiffTree changed)
+		static BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Default | BindingFlags.DeclaredOnly;
+		bool CompletelyIdentical(ITreeDiff source, ITreeDiff changed)
 		{
+
+			var fields = source.GetType().GetFields(flags).Where(x=>x.CustomAttributes.Any(y=>y.AttributeType == typeof(UseDiffAttribute)));
+			foreach (var field in fields)
+				if (!field.GetValue(source).Equals(field.GetValue(changed)))
+					return false;
 			return true;
-			//throw new NotImplementedException();
 		}
 	}
 }

@@ -7,20 +7,23 @@ using TreeDiff;
 
 namespace TreeDiffConsole
 {
-	internal class TestStructure : IDiffTree
+	internal class TestStructure : ITreeDiff
 	{
 		public int key;
+		[UseDiff]
+		public int value;
 		public List<TestStructure> children = new List<TestStructure>();
 
 		public TestStructure() { }
-		public TestStructure(int key) 
+		public TestStructure(int key, int value) 
 		{
 			this.key = key;
+			this.value = value;
 		}
 
-		public IEnumerable<IDiffTree> GetChildren() => children;
+		public IEnumerable<ITreeDiff> GetChildren() => children;
 
-		public bool PrimarilyIdentical(IDiffTree other)
+		public bool PrimarilyIdentical(ITreeDiff other)
 		{
 			return other is TestStructure ts && ts.key == key;
 		}
