@@ -98,13 +98,31 @@ namespace TreeDiff
 		}
 
 		static BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Default | BindingFlags.DeclaredOnly;
-		bool CompletelyIdentical(ITreeDiff source, ITreeDiff changed)
+		bool CompletelyIdentical(object source, object changed)
 		{
+			if (source == null || changed == null)
+				return source == changed; //true if both null only
 
-			var fields = source.GetType().GetFields(flags).Where(x=>x.CustomAttributes.Any(y=>y.AttributeType == typeof(UseDiffAttribute)));
-			foreach (var field in fields)
-				if (!field.GetValue(source).Equals(field.GetValue(changed)))
+			var fieldsAttributes = source.GetType().GetFields(flags)
+				.Where(x=>x.CustomAttributes.Any(y=>y.AttributeType == typeof(UseDiffAttribute)))
+				.Select(x => 
+					new { 
+						field = x, 
+						attr = x.GetCustomAttribute<UseDiffAttribute>()
+					});
+
+			foreach (var fa in fieldsAttributes)
+			{
+				object? firstValue = fa.field.GetValue(source),
+						secondValue = fa.field.GetValue(changed);
+				if (fa.attr.recusive)
+				{
+					if (!CompletelyIdentical(firstValue, secondValue))
+						return false;
+				}
+				else if (!firstValue.Equals(secondValue))
 					return false;
+			}
 			return true;
 		}
 	}

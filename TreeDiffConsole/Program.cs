@@ -12,7 +12,7 @@ var foo = new TestStructure(0, 0)
 				new TestStructure(4, 4)
 			}
 		},
-		new TestStructure(2, 2),
+		new TestStructure(2, 2, new TestStructure.InnerStructure(123)),
 		new TestStructure(3, 3)
 		{
 			children = new List<TestStructure>()
@@ -25,6 +25,7 @@ var foo = new TestStructure(0, 0)
 
 var bar = foo.Clone();
 bar.children.RemoveAt(0);
+bar.children[0].innerStructure.a = 12345; 
 bar.children[0].children.Add(new TestStructure(6, 6));
 bar.children[1].children.Add(new TestStructure(7, 7));
 bar.children[1].value = 999;
