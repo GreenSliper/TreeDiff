@@ -14,8 +14,15 @@ namespace TreeDiff
 			get 
 			{
 				if(children.Count == 0)
-					return true;
-				return children.Any(x => x.DescendantsAltered);
+					return false;
+				return children.Any(x => x._descendantsAltered);
+			}
+		}
+
+		bool _descendantsAltered { 
+			get 
+			{
+				return state != State.Unchanged || children.Any(x => x._descendantsAltered);
 			}
 		}
 
@@ -68,7 +75,6 @@ namespace TreeDiff
 				}
 				else //child was removed from src
 					RemoveRecursive(srcChild, result);
-				//result.children.Add(new TreeDiffResult(srcChild, TreeDiffResult.State.Removed));
 			}
 			AddRecursive(changedChildren, result);
 		}
