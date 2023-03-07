@@ -7,7 +7,7 @@ namespace TreeDiff
 		public enum State { Unchanged, Changed, Added, Removed}
 
 		public State state;
-		public ITreeDiff element;
+		public ITreeDiff element, otherValue;
 		public List<TreeDiffResult> children = new List<TreeDiffResult>();
 
 		public bool DescendantsAltered { 
@@ -26,10 +26,11 @@ namespace TreeDiff
 			}
 		}
 
-		public TreeDiffResult(ITreeDiff element, State state)
+		public TreeDiffResult(ITreeDiff element, State state, ITreeDiff otherValue = null)
 		{
 			this.element = element;
 			this.state = state;
+			this.otherValue = otherValue;
 		}
 	}
 
@@ -38,7 +39,7 @@ namespace TreeDiff
 		TreeDiffResult Diff(ITreeDiff source, ITreeDiff changed);
 	}
 
-	public class TreeDiffResolver
+	public class TreeDiffResolver : ITreeDiffResolver
 	{
 		public TreeDiffResult Diff(ITreeDiff source, ITreeDiff changed)
 		{
@@ -46,9 +47,9 @@ namespace TreeDiff
 				throw new ArgumentException("Cannot diff trees with non-identical roots!");
 			TreeDiffResult result = null;
 			if (CompletelyIdentical(source, changed))
-				result = new TreeDiffResult(source, TreeDiffResult.State.Unchanged);
+				result = new TreeDiffResult(source, TreeDiffResult.State.Unchanged, changed);
 			else
-				result = new TreeDiffResult(changed, TreeDiffResult.State.Changed);
+				result = new TreeDiffResult(changed, TreeDiffResult.State.Changed, source);
 			Diff(source, changed, result);
 			return result;
 		}
@@ -66,9 +67,9 @@ namespace TreeDiff
 				{
 					TreeDiffResult diffResult = null;
 					if (CompletelyIdentical(srcChild, changedChildren[changedChildIndex]))
-						diffResult = new TreeDiffResult(srcChild, TreeDiffResult.State.Unchanged);
+						diffResult = new TreeDiffResult(srcChild, TreeDiffResult.State.Unchanged, changedChildren[changedChildIndex]);
 					else
-						diffResult = new TreeDiffResult(changedChildren[changedChildIndex], TreeDiffResult.State.Changed);
+						diffResult = new TreeDiffResult(changedChildren[changedChildIndex], TreeDiffResult.State.Changed, srcChild);
 					result.children.Add(diffResult);
 					Diff(srcChild, changedChildren[changedChildIndex], diffResult);
 					changedChildren.RemoveAt(changedChildIndex);
